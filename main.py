@@ -13,12 +13,11 @@ CORS(app)
 tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
 model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-v0.1")
 
-model.to("cuda")
-
 temperature = 1  # For creativity. 1.0 is the default. Lower for more deterministic.
 max_length = 50  # Maximum number of tokens to generate.
 
-
+emotion_list = ["happy", "sad", "neutral", "angry", "disgust", "excitement", "fear", "concern"]
+encoded_list = [tokenizer(i)['input_ids'][1] for i in emotion_list]
 
 
 utext = '''user: I have something happy to tell you
@@ -40,45 +39,26 @@ Output: '''
 input_ids = tokenizer.encode(input_text, return_tensors='pt')
 
 
+def normalize_probs_and_map(exp_probs):
+
+    probs_list = exp_probs.tolist()
+    flat_probs_list = [item for sublist in probs_list for item in sublist]
+
+    # Calculate the sum of the probabilities
+    sum_probs = sum(flat_probs_list)
+
+    # Normalize each probability by dividing by the sum of all probabilities
+    normalized_probs_list = [prob / sum_probs for prob in flat_probs_list]
+
+    # Map each normalized probability to the corresponding emotion
+    emotion_prob_map = {emotion: prob for emotion, prob in zip(emotion_list, normalized_probs_list)}
+
+    return emotion_prob_map
 
 
 
+model.to("cuda")
 
-
-
-
-num_generated_tokens = 1  # Parameter to control the number of tokens to generate
-temperature = 1  # Temperature for scaling logits
-
-new_input_ids = input_ids.to("cuda").clone()  # Start with the original input
-
-with torch.no_grad():
-    for _ in range(num_generated_tokens):
-        outputs_l = model(new_input_ids)
-        logits = outputs_l.logits
-        # Scale logits by temperature
-        scaled_logits = logits / temperature
-        selected_token_ids = encoded_list
-        selected_logits = scaled_logits[:, :, selected_token_ids]
-        probabilities = F.softmax(scaled_logits, dim=-1)
-        next_token_logits = probabilities[:, -1, :]
-        most_probable_token_id = torch.argmax(next_token_logits, dim=-1).item()
-        print("most_probable_token_id", most_probable_token_id)
-        selected_probabilities = probabilities[:, :, selected_token_ids]
-        exp_probabilities = selected_probabilities[:, -1, :]
-        next_token_logits = probabilities[:, -1, :]
-        # Select the most probable next token ID
-        next_token_id = torch.argmax(next_token_logits, dim=-1).unsqueeze(-1)
-        # Append the generated token ID to the input for the next iteration
-        new_input_ids = torch.cat((new_input_ids, next_token_id), dim=1)
-
-# Decode the generated tokens to text, excluding the original input
-# Calculate the starting point to exclude the original input from decoding
-start_point = input_ids.shape[1]
-print(new_input_ids[0, start_point:])
-decoded_tokens = tokenizer.decode(new_input_ids[0, start_point:], skip_special_tokens=False)
-
-emotion_prob_map = normalize_probs_and_map(exp_probabilities)
 
 
 @app.route('/', methods=['GET'])
