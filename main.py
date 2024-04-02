@@ -11,8 +11,11 @@ CORS(app)
 # tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
 # model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-v0.1")
 
+@app.route('/', methods=['GET'])
+def hello_world():
+    return 'Hello, World!'
 
-@app.route('/', methods=['POST'])
+@app.route('/classify', methods=['POST'])
 def classify_audio():
     request_data = request.get_json()
     messages = request_data['messages']
