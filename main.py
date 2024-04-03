@@ -10,14 +10,15 @@ app = Flask(__name__)
 CORS(app)
 
 
-tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
-model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-v0.1")
+tokenizer = AutoTokenizer.from_pretrained("google/gemma-2b")
+model = AutoModelForCausalLM.from_pretrained("google/gemma-2b")
 
 temperature = 1  # For creativity. 1.0 is the default. Lower for more deterministic.
 max_length = 50  # Maximum number of tokens to generate.
 
 emotion_list = ["happy", "sad", "neutral", "angry", "disgust", "excitement", "fear", "concern"]
 encoded_list = [tokenizer(i)['input_ids'][1] for i in emotion_list]
+
 
 
 utext = '''user: I have something happy to tell you
@@ -37,6 +38,11 @@ Output: fear
 Input: {utext}
 Output: '''
 input_ids = tokenizer.encode(input_text, return_tensors='pt')
+token_to_add = torch.tensor([[199]])  # Shape [1, 1] to match the dimension of input_ids
+
+# Append the token to the end of input_ids
+input_ids = torch.cat((input_ids, token_to_add), dim=1)  # Concatenate along the second dimension
+
 
 
 def normalize_probs_and_map(exp_probs):
