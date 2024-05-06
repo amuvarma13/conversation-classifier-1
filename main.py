@@ -62,7 +62,7 @@ def classify_audio():
     utext = "\n".join(message_strings)
 
 
-    input_text = f'''You will classify the next emotion of the assistant from input conversation as one the following: [{", ".join(emotion_list)}]:
+    input_text = f'''You will classify the emotion of the assistant from input conversation as one the following: [{", ".join(emotion_list)}]:
 
     Here are few examples to illustrate only the format:
 
